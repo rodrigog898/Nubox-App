@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="side-nav" aria-label="Navegacion del panel">
+        <h1>Contractal Integracion</h1>
+        <p>Menu principal para consultar documentos y administrar tu acceso.</p>
+
+        <div class="tab-list" role="tablist" aria-label="Vistas">
+          <button class="tab-button active" id="tabConsulta" data-panel="consultaPanel" role="tab" aria-selected="true" type="button">
+            Consulta
+          </button>
+          <button class="tab-button" id="tabConfig" data-panel="configPanel" role="tab" aria-selected="false" type="button">
+            Configuracion
+          </button>
+        </div>
+
+        <section class="status-card" id="cookieStatusBox" aria-live="polite">
+          <h2>Estado de cookies</h2>
+          <p id="cookieStatus">Sin configurar</p>
+        </section>
+      </aside>
+
+      <section class="work-area">
+        <section class="panel active" id="consultaPanel" role="tabpanel" aria-labelledby="tabConsulta">
+          <div class="panel-head">
+            <h2>Ejecutar ObtenerPorFiltro</h2>
+            <p>Selecciona rango de fechas y consulta. El sistema completa automaticamente los parametros tecnicos.</p>
+          </div>
+
+          <div class="grid-two">
+            <label class="field" for="fechaDesdeInput">
+              Fecha desde
+              <input id="fechaDesdeInput" type="date" />
+            </label>
+
+            <label class="field" for="fechaHastaInput">
+              Fecha hasta
+              <input id="fechaHastaInput" type="date" />
+            </label>
+          </div>
+
+          <div class="actions-row">
+            <button id="runRequestBtn" type="button">Consultar</button>
+            <button id="downloadZipBtn" type="button">Descargar ZIP PDFs</button>
+            <button id="clearResultBtn" type="button" class="secondary">Limpiar resultado</button>
+          </div>
+
+          <section class="result-box" aria-live="polite">
+            <div class="result-meta">
+              <span id="requestState">Listo para enviar</span>
+              <span id="requestHttpCode">-</span>
+            </div>
+
+            <div class="table-wrap" id="tableWrap">
+              <table id="resultTable">
+                <thead id="resultTableHead"></thead>
+                <tbody id="resultTableBody"></tbody>
+              </table>
+              <p id="emptyTableMessage" class="empty-table">Aqui veras la respuesta del servicio.</p>
+            </div>
+
+            <div class="pagination" id="paginationBar">
+              <button id="prevPageBtn" type="button" class="secondary">Anterior</button>
+              <span id="paginationInfo">Pagina 0 de 0</span>
+              <button id="nextPageBtn" type="button" class="secondary">Siguiente</button>
+            </div>
+
+            <pre id="resultOutput" class="raw-output">Aqui veras la respuesta del servicio.</pre>
+          </section>
+        </section>
+
+        <section class="panel" id="configPanel" role="tabpanel" aria-labelledby="tabConfig">
+          <div class="panel-head">
+            <h2>Configuracion</h2>
+            <p>Pega tu header Cookie completo y guarda para usar la consulta.</p>
+          </div>
+
+          <label class="field" for="cookieInput">
+            Header Cookie completo
+            <textarea id="cookieInput" rows="8" spellcheck="false" placeholder="COOKIE_NORMAL_SERVIPYME=...; ASP.NET_SessionId=...; ..."></textarea>
+          </label>
+
+          <div class="actions-row">
+            <button id="saveConfigBtn" type="button">Guardar configuracion</button>
+            <button id="clearConfigBtn" type="button" class="secondary">Limpiar configuracion</button>
+          </div>
+
+          <p class="hint">Solo se requiere la cookie vigente para consultar correctamente.</p>
+        </section>
+      </section>
+    </main>
+
+    <section class="zip-progress-modal" id="zipProgressModal" aria-hidden="true">
+      <div class="zip-progress-overlay" id="zipProgressOverlay"></div>
+      <div class="zip-progress-dialog" role="dialog" aria-modal="true" aria-labelledby="zipProgressTitle">
+        <div class="zip-progress-head">
+          <h3 id="zipProgressTitle">Descargando PDFs</h3>
+          <button id="zipCloseBtn" type="button" class="secondary">Cerrar</button>
+        </div>
+
+        <div class="zip-progress-body">
+          <p id="zipProgressStatus">Preparando descarga...</p>
+          <div class="zip-counts">
+            <span id="zipTotalRegistros">Registros: 0</span>
+            <span id="zipDescargados">Descargados: 0</span>
+            <span id="zipFallidos">Fallidos: 0</span>
+          </div>
+
+          <div class="zip-progress-track" aria-label="Progreso descarga ZIP">
+            <div id="zipProgressFill" class="zip-progress-fill"></div>
+          </div>
+          <p id="zipPercentText" class="zip-percent">0%</p>
+        </div>
+      </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="../assets/js/script.js?v=20260531a"></script>
+  </body>
+</html>
