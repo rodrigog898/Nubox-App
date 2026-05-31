@@ -4,9 +4,8 @@ Panel local para integrar consultas de Nubox, visualizar resultados y descargar 
 
 ## Vista previa
 
-> Puedes subir 1 imagen de tu proyecto y dejarla en `assets/img/preview.png`.
+<img width="1917" height="901" alt="image" src="https://github.com/user-attachments/assets/7a47f2ab-b71a-466b-beaa-06c472df0465" />
 
-![Vista previa del panel](assets/img/preview.png)
 
 ## Caracteristicas
 
