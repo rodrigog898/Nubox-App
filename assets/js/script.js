@@ -4,6 +4,7 @@ const NUBOX_PATH = "/ServiFactura/paginas/dteDocumentosRecibidos.aspx/ObtenerPor
 const NUBOX_PDF_PATH = "/ServiFactura/paginas/dteDocumentosRecibidos.aspx/VerPDFDocManualesElectronicos";
 const PROXY_ENDPOINT = "http://127.0.0.1:8765/api/nubox/obtener-por-filtro";
 const PROXY_PDF_ENDPOINT = "http://127.0.0.1:8765/api/nubox/ver-pdf";
+const ZIP_ANALYZE_ENDPOINT = "http://127.0.0.1:8765/api/zip/analizar";
 
 const tabButtons = Array.from(document.querySelectorAll(".tab-button"));
 const panels = Array.from(document.querySelectorAll(".panel"));
@@ -38,6 +39,13 @@ const zipFallidos = document.getElementById("zipFallidos");
 const zipProgressFill = document.getElementById("zipProgressFill");
 const zipPercentText = document.getElementById("zipPercentText");
 const TRUSTED_NUBOX_ORIGIN = "https://app.nubox.com";
+const zipFileInput = document.getElementById("zipFileInput");
+const analyzeZipBtn = document.getElementById("analyzeZipBtn");
+const downloadAnalyzedExcelBtn = document.getElementById("downloadAnalyzedExcelBtn");
+const zipAnalyzeState = document.getElementById("zipAnalyzeState");
+const zipAnalysisTableHead = document.getElementById("zipAnalysisTableHead");
+const zipAnalysisTableBody = document.getElementById("zipAnalysisTableBody");
+const zipAnalysisEmptyMessage = document.getElementById("zipAnalysisEmptyMessage");
 
 const TABLE_PAGE_SIZE = 12;
 
@@ -61,6 +69,10 @@ function safeParseJson(text, fallbackValue) {
 }
 const zipProgressState = {
     running: false,
+};
+
+const zipAnalysisStateData = {
+    rows: [],
 };
 
 function updateZipButtonState() {
@@ -654,6 +666,124 @@ function setResultState(message, isError) {
     requestState.classList.toggle("is-error", Boolean(isError));
 }
 
+function setZipAnalyzeState(message, isError) {
+    zipAnalyzeState.textContent = message;
+    zipAnalyzeState.classList.toggle("is-error", Boolean(isError));
+}
+
+function renderZipAnalysisTable(rows) {
+    zipAnalysisTableHead.innerHTML = "";
+    zipAnalysisTableBody.innerHTML = "";
+
+    if (!Array.isArray(rows) || !rows.length) {
+        zipAnalysisEmptyMessage.style.display = "block";
+        downloadAnalyzedExcelBtn.disabled = true;
+        return;
+    }
+
+    const columns = [
+        { key: "rut_emisor", label: "RUT Emisor" },
+        { key: "folio", label: "Folio" },
+        { key: "fecha", label: "Fecha" },
+        { key: "orden_compra", label: "Orden Compra" },
+        { key: "fecha_orden_compra", label: "Fecha Orden Compra" },
+        { key: "item_numero", label: "Item" },
+        { key: "item_descripcion", label: "Descripcion" },
+        { key: "precio_unitario", label: "Precio Unitario" },
+        { key: "total_item", label: "Total Item" },
+    ];
+
+    const headRow = document.createElement("tr");
+    columns.forEach((column) => {
+        const th = document.createElement("th");
+        th.textContent = column.label;
+        headRow.appendChild(th);
+    });
+    zipAnalysisTableHead.appendChild(headRow);
+
+    rows.forEach((row) => {
+        const tr = document.createElement("tr");
+        columns.forEach((column) => {
+            const td = document.createElement("td");
+            const value = row?.[column.key];
+            td.textContent = value === null || value === undefined ? "" : String(value);
+            tr.appendChild(td);
+        });
+        zipAnalysisTableBody.appendChild(tr);
+    });
+
+    zipAnalysisEmptyMessage.style.display = "none";
+    downloadAnalyzedExcelBtn.disabled = false;
+}
+
+async function analyzeUploadedZip() {
+    const file = zipFileInput.files?.[0];
+    if (!file) {
+        setZipAnalyzeState("Debes seleccionar un archivo ZIP.", true);
+        return;
+    }
+
+    if (!file.name.toLowerCase().endsWith(".zip")) {
+        setZipAnalyzeState("El archivo seleccionado no es ZIP.", true);
+        return;
+    }
+
+    setZipAnalyzeState("Analizando ZIP en servidor...", false);
+    downloadAnalyzedExcelBtn.disabled = true;
+    zipAnalysisStateData.rows = [];
+    renderZipAnalysisTable([]);
+
+    try {
+        const response = await fetch(ZIP_ANALYZE_ENDPOINT, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/zip",
+            },
+            body: file,
+        });
+
+        const result = await response.json();
+        if (!response.ok || !result?.ok) {
+            throw new Error(result?.error || `Error ${response.status}`);
+        }
+
+        const rows = Array.isArray(result.rows) ? result.rows : [];
+        zipAnalysisStateData.rows = rows;
+        renderZipAnalysisTable(rows);
+
+        const failedCount = Number(result.failedCount || 0);
+        if (failedCount > 0) {
+            setZipAnalyzeState(`Analisis completado con ${failedCount} PDF(s) con error.`, true);
+            return;
+        }
+
+        setZipAnalyzeState(`Analisis completado. Filas detectadas: ${rows.length}.`, false);
+    } catch (error) {
+        setZipAnalyzeState(`No fue posible analizar el ZIP: ${String(error)}`, true);
+        renderZipAnalysisTable([]);
+    }
+}
+
+function downloadAnalyzedExcel() {
+    const rows = zipAnalysisStateData.rows;
+    if (!Array.isArray(rows) || !rows.length) {
+        setZipAnalyzeState("No hay resultados para exportar.", true);
+        return;
+    }
+
+    if (typeof window.XLSX !== "object") {
+        setZipAnalyzeState("No se pudo cargar la libreria XLSX para exportar.", true);
+        return;
+    }
+
+    const worksheet = window.XLSX.utils.json_to_sheet(rows);
+    const workbook = window.XLSX.utils.book_new();
+    window.XLSX.utils.book_append_sheet(workbook, worksheet, "Facturas");
+    const stamp = new Date().toISOString().slice(0, 10);
+    window.XLSX.writeFile(workbook, `analisis_facturas_${stamp}.xlsx`);
+    setZipAnalyzeState("Excel descargado correctamente.", false);
+}
+
 function showPanel(panelId) {
     panels.forEach((panel) => {
         panel.classList.toggle("active", panel.id === panelId);
@@ -809,6 +939,14 @@ function init() {
 
     zipProgressOverlay.addEventListener("click", () => {
         closeZipProgressModal();
+    });
+
+    analyzeZipBtn.addEventListener("click", () => {
+        analyzeUploadedZip();
+    });
+
+    downloadAnalyzedExcelBtn.addEventListener("click", () => {
+        downloadAnalyzedExcel();
     });
 
     window.addEventListener("message", (event) => {

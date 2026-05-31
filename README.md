@@ -31,6 +31,13 @@ Panel local para integrar consultas de Nubox, visualizar resultados y descargar 
 
 - Python 3.9+.
 - Navegador moderno.
+- Dependencias Python: `pypdf` y `openpyxl`.
+
+Instalacion de dependencias:
+
+```powershell
+pip install pypdf openpyxl
+```
 
 ## Ejecucion local
 
@@ -48,6 +55,15 @@ Luego abre:
 Archivo: `scripts/nubox_userscript.user.js`
 
 El userscript abre el panel local y envia la respuesta de Nubox usando `postMessage`.
+
+## Generacion Excel por ZIP
+
+En la barra lateral existe la seccion **Generacion Excel por ZIP**:
+
+- Carga un archivo ZIP que contenga PDFs de facturas.
+- Pulsa **Analizar ZIP** para extraer RUT, folio, fecha e items.
+- Se muestra una tabla en pantalla con una fila por item.
+- Pulsa **Descargar Excel** para exportar el resultado.
 
 ## Notas
 

@@ -327,41 +327,100 @@ button.secondary {
 
 .table-wrap {
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
   flex: 1;
   width: 100%;
 }
 
 #resultTable {
   width: 100%;
+  min-width: 1500px;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
+  border: 1px solid rgba(24, 99, 220, 0.32);
 }
 
 #resultTable th,
 #resultTable td {
-  border-bottom: 1px solid rgba(24, 99, 220, 0.12);
+  border: 1px solid rgba(24, 99, 220, 0.22);
   padding: 10px 12px;
   font-size: 0.84rem;
   text-align: left;
   vertical-align: top;
-  white-space: normal;
+  white-space: nowrap;
   word-break: break-word;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 #resultTable th {
   position: sticky;
   top: 0;
   z-index: 1;
-  background: #f2f8ff;
+  background: #e8f2ff;
   color: #2f3d68;
   font-weight: 700;
 }
 
+#resultTable tbody tr:nth-child(odd) {
+  background: #ffffff;
+}
+
+#resultTable tbody tr:nth-child(even) {
+  background: #f5f9ff;
+}
+
 #resultTable tbody tr:hover {
-  background: rgba(0, 154, 255, 0.05);
+  background: #dcecff;
+}
+
+#zipExcelPanel .table-wrap {
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+#zipAnalysisTable {
+  width: 100%;
+  min-width: 1100px;
+  border-collapse: collapse;
+  table-layout: auto;
+  border: 1px solid rgba(24, 99, 220, 0.35);
+}
+
+#zipAnalysisTable th,
+#zipAnalysisTable td {
+  border: 1px solid rgba(24, 99, 220, 0.26);
+  padding: 10px 12px;
+  font-size: 0.84rem;
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+#zipAnalysisTable td:nth-child(7),
+#zipAnalysisTable th:nth-child(7) {
+  min-width: 360px;
+  white-space: normal;
+  word-break: break-word;
+}
+
+#zipAnalysisTable th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #e8f2ff;
+  color: #2f3d68;
+  font-weight: 700;
+}
+
+#zipAnalysisTable tbody tr:nth-child(odd) {
+  background: #ffffff;
+}
+
+#zipAnalysisTable tbody tr:nth-child(even) {
+  background: #f5f9ff;
+}
+
+#zipAnalysisTable tbody tr:hover {
+  background: #dcecff;
 }
 
 .empty-table {
