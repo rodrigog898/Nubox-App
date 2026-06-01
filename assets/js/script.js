@@ -683,6 +683,7 @@ function renderZipAnalysisTable(rows) {
 
     const columns = [
         { key: "rut_emisor", label: "RUT Emisor" },
+        { key: "razon_social", label: "Razon Social" },
         { key: "folio", label: "Folio" },
         { key: "fecha", label: "Fecha" },
         { key: "orden_compra", label: "Orden Compra" },

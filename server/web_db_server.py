@@ -36,6 +36,15 @@ AF_ITEM_REGEX = re.compile(
     r"(?P<cantidad>\d{1,3}(?:\.\d{3})*(?:,\d+)?)\s+(?P<precio>\d{1,3}(?:\.\d{3})*(?:,\d+)?)\s+AF\s+(?P<total>\d{1,3}(?:\.\d{3})*(?:,\d+)?)",
     re.IGNORECASE,
 )
+AF_ITEM_TAIL_REGEX = re.compile(
+    r"^(?P<descripcion>.*?)\s+(?P<cantidad>\d{1,3}(?:\.\d{3})*(?:,\d+)?)\s+(?P<precio>\d{1,3}(?:\.\d{3})*(?:,\d+)?)\s+AF\s+(?P<total>\d{1,3}(?:\.\d{3})*(?:,\d+)?)\s*$",
+    re.IGNORECASE,
+)
+GENERIC_ITEM_TAIL_REGEX = re.compile(
+    r"^(?P<descripcion>.*?)\s+(?P<precio>\d{1,3}(?:\.\d{3})*(?:,\d+)?)\s+(?P<total>\d{1,3}(?:\.\d{3})*(?:,\d+)?)\s*$",
+    re.IGNORECASE,
+)
+LEGAL_SUFFIX_REGEX = re.compile(r"\b(LTDA\.?|LIMITADA|S\.A\.?|SPA|EIRL|S A)\b", re.IGNORECASE)
 
 
 def _normalize_lines(text: str) -> list[str]:
@@ -88,39 +97,39 @@ def _extract_invoice_items(text: str) -> list[dict]:
     parsed_items = []
     for chunk in chunks:
         first_line = chunk[0]
-        first_match = re.match(r"^(\d+)\s*(.*)$", first_line)
+        first_match = re.match(r"^(\d{1,3})\s+(.*)$", first_line)
+        if not first_match:
+            first_match = re.match(r"^(\d{1,3})([A-Za-z].*)$", first_line)
         item_number = first_match.group(1) if first_match else ""
         desc_start = first_match.group(2) if first_match else first_line
 
         all_desc_lines = [desc_start] + chunk[1:]
         all_text = " ".join(all_desc_lines)
-        tokens = NUMERIC_REGEX.findall(all_text)
-
-        merged_tokens: list[str] = []
-        i = 0
-        while i < len(tokens):
-            token = tokens[i]
-            if "," in token:
-                decimal = token.split(",", 1)[1]
-                if len(decimal) == 1 and i + 1 < len(tokens) and re.fullmatch(r"\d", tokens[i + 1] or ""):
-                    token = f"{token}{tokens[i + 1]}"
-                    i += 1
-            merged_tokens.append(token)
-            i += 1
+        all_text = re.sub(r"\s+", " ", all_text).strip()
 
         description = all_text
-        if merged_tokens:
-            for token in merged_tokens:
-                description = description.replace(token, " ")
-        description = re.sub(r"\s+", " ", description).strip(" -")
+        unit_price = ""
+        total_price = ""
 
-        af_match = AF_ITEM_REGEX.search(all_text)
-        if af_match:
-            unit_price = af_match.group("precio")
-            total_price = af_match.group("total")
+        af_tail_match = AF_ITEM_TAIL_REGEX.match(all_text)
+        if af_tail_match:
+            description = af_tail_match.group("descripcion").strip(" -")
+            unit_price = af_tail_match.group("precio")
+            total_price = af_tail_match.group("total")
         else:
-            unit_price = merged_tokens[-2] if len(merged_tokens) >= 2 else (merged_tokens[0] if merged_tokens else "")
-            total_price = merged_tokens[-1] if merged_tokens else ""
+            af_match = AF_ITEM_REGEX.search(all_text)
+            if af_match:
+                unit_price = af_match.group("precio")
+                total_price = af_match.group("total")
+                description = all_text[: af_match.start()].strip(" -")
+            else:
+                generic_tail_match = GENERIC_ITEM_TAIL_REGEX.match(all_text)
+                if generic_tail_match:
+                    description = generic_tail_match.group("descripcion").strip(" -")
+                    unit_price = generic_tail_match.group("precio")
+                    total_price = generic_tail_match.group("total")
+
+        description = re.sub(r"\s+", " ", description).strip(" -")
 
         parsed_items.append(
             {
@@ -132,6 +141,76 @@ def _extract_invoice_items(text: str) -> list[dict]:
         )
 
     return parsed_items
+
+
+def _extract_razon_social(lines: list[str]) -> str:
+    if not lines:
+        return ""
+
+    folio_idx = -1
+    for idx, line in enumerate(lines):
+        if FOLIO_REGEX.search(line):
+            folio_idx = idx
+            break
+
+    if folio_idx >= 0:
+        start_idx = folio_idx + 1
+    else:
+        factura_idx = -1
+        for idx, line in enumerate(lines):
+            if "FACTURA" in line.upper():
+                factura_idx = idx
+                break
+        start_idx = factura_idx + 1 if factura_idx >= 0 else 0
+
+    stop_markers = (
+        "SEÑOR(ES)",
+        "SENOR(ES)",
+        "DATOS DE PAGO",
+        "DATOS DE DESPACHO",
+        "ITEM",
+        "RUT:",
+        "DIRECCIÓN",
+        "DIRECCION",
+    )
+    address_markers = ("AVDA", "AVENIDA", "CALLE", "CAMINO", "PASAJE", "NRO", "N°")
+
+    candidates: list[str] = []
+    for line in lines[start_idx : start_idx + 12]:
+        upper_line = line.upper()
+        if any(marker in upper_line for marker in stop_markers):
+            break
+
+        if any(marker in upper_line for marker in address_markers) and re.search(r"\d", upper_line):
+            break
+
+        if re.search(r"\bGIRO\b", upper_line):
+            break
+
+        if re.search(r"\b(CONSTRUCCION|SERVICIO|DISTRIBUIDORA|ASESORIA EN)\b", upper_line) and candidates:
+            # When we already captured legal name, this usually starts business activity lines.
+            break
+
+        clean = line.strip(" -")
+        if not clean:
+            continue
+
+        suffix_match = LEGAL_SUFFIX_REGEX.search(clean)
+        if suffix_match:
+            # Keep only the legal name fragment when OCR joins giro/address text on same line.
+            clean = clean[: suffix_match.end()].strip(" -")
+
+        candidates.append(clean)
+        if suffix_match:
+            break
+
+    if not candidates:
+        return ""
+
+    if len(candidates) > 2:
+        candidates = candidates[:2]
+
+    return " ".join(candidates)
 
 
 def _extract_invoice_data(pdf_bytes: bytes, row_id: str, pdf_filename: str) -> list[dict]:
@@ -149,6 +228,7 @@ def _extract_invoice_data(pdf_bytes: bytes, row_id: str, pdf_filename: str) -> l
     order_match = ORDER_REGEX.search(joined_text)
 
     rut_emisor = ruts[0] if len(ruts) >= 1 else ""
+    razon_social = _extract_razon_social(lines)
     folio = folio_match.group(1) if folio_match else ""
     fecha = fecha_match.group(1) if fecha_match else ""
     orden_compra = order_match.group(1) if order_match else ""
@@ -170,6 +250,7 @@ def _extract_invoice_data(pdf_bytes: bytes, row_id: str, pdf_filename: str) -> l
         rows.append(
             {
                 "rut_emisor": rut_emisor,
+                "razon_social": razon_social,
                 "folio": folio,
                 "fecha": fecha,
                 "orden_compra": orden_compra,
@@ -190,6 +271,7 @@ def _build_excel_bytes(rows: list[dict]) -> bytes:
 
     headers = [
         "rut_emisor",
+        "razon_social",
         "folio",
         "fecha",
         "orden_compra",

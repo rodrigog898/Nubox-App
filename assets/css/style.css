@@ -395,8 +395,8 @@ button.secondary {
   white-space: nowrap;
 }
 
-#zipAnalysisTable td:nth-child(7),
-#zipAnalysisTable th:nth-child(7) {
+#zipAnalysisTable td:nth-child(8),
+#zipAnalysisTable th:nth-child(8) {
   min-width: 360px;
   white-space: normal;
   word-break: break-word;
