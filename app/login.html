@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../assets/css/login.css" />
+    <title>Login Moderno</title>
+  </head>
+  <body>
+    <div class="container" id="container">
+      <div class="form-container sign-up">
+        <form>
+          <h1>Crear Cuenta</h1>
+          <span>o usa tu correo para registrarte</span>
+          <input type="text" placeholder="Nombre" />
+          <input type="email" placeholder="Correo" />
+          <input type="password" placeholder="Contrasena" />
+          <button type="button">Registrarse</button>
+        </form>
+      </div>
+      <div class="form-container sign-in">
+        <form>
+          <h1>Iniciar Sesion</h1>
+          <span>usa tu correo y contrasena</span>
+          <input type="email" placeholder="Correo" />
+          <input type="password" placeholder="Contrasena" />
+          <a href="#">Olvidaste tu contrasena?</a>
+          <button type="button">Entrar</button>
+        </form>
+      </div>
+      <div class="toggle-container">
+        <div class="toggle">
+          <div class="toggle-panel toggle-left">
+            <h1>Bienvenido de Nuevo</h1>
+            <p>Ingresa tus datos personales para usar todas las funciones del sitio</p>
+            <button class="hidden" id="login" type="button">Iniciar Sesion</button>
+          </div>
+          <div class="toggle-panel toggle-right">
+            <h1>Hola</h1>
+            <p>Registrate con tus datos para usar todas las funciones del sitio</p>
+            <button class="hidden" id="register" type="button">Registrarse</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="../assets/js/login.js"></script>
+  </body>
+</html>
